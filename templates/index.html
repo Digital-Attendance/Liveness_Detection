@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Capture & Liveness Detection</title>
+</head>
+<body>
+    <h2>Capture Your Face for Liveness Detection</h2>
+    <video id="video" width="640" height="480" autoplay></video>
+    <button id="capture">Capture & Verify</button>
+    <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
+    <p id="result"></p>
+
+    <script>
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const captureBtn = document.getElementById("capture");
+        const resultText = document.getElementById("result");
+
+        // Start Webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Error accessing webcam:", err);
+            });
+
+        // Capture Image & Send to API
+        captureBtn.addEventListener("click", () => {
+            const context = canvas.getContext("2d");
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+                let formData = new FormData();
+                formData.append("image", blob, "captured.jpg");
+
+                fetch("/detect_liveness", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    resultText.innerText = `Liveness: ${data.label}, Confidence: ${data.confidence}`;
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                });
+            }, "image/jpeg");
+        });
+    </script>
+</body>
+</html>
